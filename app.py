@@ -101,4 +101,63 @@ if checkmark:
             df_final.loc[i, "normalized_value"]= temp_mean/temp_blank
 
         st.write(df_final)
-    
+        import plotly.express as px
+
+        fig2 = px.box(df2, x="buffer", y="value",
+                    color='sample', boxmode="group")
+        st.write(fig2)
+
+        fig3 = px.box(df2[(df2['sample']!="blank")], x="buffer", y="value",
+                    color='sample', boxmode="group")
+        st.write(fig3)
+  
+        checkmark3=st.checkbox('Lookin good?!')
+        if checkmark3:
+            for sample in sample_names:
+
+                for i in range(4):
+                    buffer=i+1
+                    mask= (df_final["sample"]==sample)&(df_final["buffer"]==buffer)
+
+                    temp_value=df_final.loc[mask,"normalized_value"]
+                    temp_value=float(temp_value.iloc[0])
+                    if buffer == int(1):
+                        print(True)
+                        df_final.loc[mask,"diminished"]=(temp_value - temp_value)
+                    else:
+                        mask2= (df_final["sample"]==sample)&(df_final["buffer"]==i)
+                        temp_value2=df_final.loc[mask2,"normalized_value"]
+                        temp_value2=float(temp_value2.iloc[0])
+                        df_final.loc[mask,"diminished"]=(temp_value - temp_value2)
+
+                    #quick fix for negative numbers needa think
+            df_final['diminished'] = df_final['diminished'].clip(lower=0)
+            for value in set(df_final[(df_final['sample']!="blank")]["sample"]):
+                
+
+                mask=(df_final['sample']==value)
+                sum_sample=(df_final.loc[mask,"diminished"].sum())
+                df_final.loc[mask,"sum_sample"]=sum_sample
+
+            df_final['percentage']=(df_final['diminished']/df_final["sum_sample"])*100
+            for i in range(len(df_final)):
+            #print(df_final.loc[i,"buffer"])
+
+                if  float(df_final.loc[i,"buffer"])==int(2):
+
+                    df_final.loc[i,"location"]="RBC"
+
+                elif float(df_final.loc[i,"buffer"])==int(3):
+                    df_final.loc[i,"location"]="PV"
+                elif float(df_final.loc[i,"buffer"])==int(4):
+                    df_final.loc[i,"location"]="ER"
+
+            df_final['buffer']=(df_final['buffer']).astype(str)
+            fig_absolute = px.bar(df_final[(df_final['sample']!="blank")], x="sample", y="diminished",
+                    color='buffer', barmode="stack")
+
+            fig_final = px.bar(df_final[(df_final['sample']!="blank")], x="sample", y="percentage",
+                            color='location', barmode="relative",category_orders={'sample': ['EK', '3aa','WT']}
+            )
+            st.write(fig_absolute)
+            st.write(fig_final)
